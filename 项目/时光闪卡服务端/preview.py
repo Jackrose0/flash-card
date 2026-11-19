@@ -20,7 +20,7 @@ if __name__ == '__main__':
     if not any(args.address in ipaddress.ip_network(net) for net in ('10.0.0.0/8','172.16.0.0/12','192.168.0.0/16')):
         parser.error('请选择电脑的局域网 IPv4 地址')
 
-    source = ROOT.parent / '糖果闪卡'
+    source = ROOT.parent / '时光闪卡'
     project = ROOT.parents[1] / 'tmp' / 'candy-scan-preview'
     shutil.copytree(source, project, dirs_exist_ok=True,
                     ignore=shutil.ignore_patterns('project.private.config.json', '.git'))

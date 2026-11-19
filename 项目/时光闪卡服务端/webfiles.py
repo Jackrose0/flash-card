@@ -13,7 +13,7 @@ from PIL import Image, ImageOps
 from werkzeug.security import safe_join
 
 ROOT = Path(__file__).resolve().parent
-MINI = ROOT.parent / '糖果闪卡'
+MINI = ROOT.parent / '时光闪卡'
 H5 = ROOT / 'h5'
 ASSETS = H5 / 'assets' if (H5 / 'assets').is_dir() else MINI / 'assets'
 IMAGE_TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp'}
