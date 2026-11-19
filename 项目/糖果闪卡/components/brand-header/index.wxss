@@ -1,5 +1,0 @@
-.brand { display: flex; align-items: center; gap: 9px; padding: 0 16px 9px; }
-.avatar { width: 32px; height: 32px; flex: none; border-radius: 10px; box-shadow: 0 2px 9px #c88dd054; }
-.brand-name { font-size: 17px; font-weight: 800; letter-spacing: -.4px; white-space: nowrap; }
-.role { display: flex; align-items: center; gap: 5px; flex: none; margin-left: auto; padding: 3px 8px; border: 1px solid #ecd9b3; border-radius: 30px; background: #fff7e6; color: #754900; white-space: nowrap; font-size: 11px; }
-.role-dot { width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(90deg,#ffc398,#a2ef9a,#a1dff3); }

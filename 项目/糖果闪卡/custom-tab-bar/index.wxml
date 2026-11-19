@@ -1,9 +1,0 @@
-<view class="bar" aria-label="主导航">
-  <button wx:for="{{tabs}}" wx:key="path" class="nav {{route === item.path ? 'selected' : ''}}"
-    data-path="{{item.path}}" bindtap="go" aria-label="{{item.name}}" aria-current="{{route === item.path ? 'page' : 'false'}}">
-    <view class="nav-item">
-      <view class="dot" aria-hidden="true"/>
-      <text wx:if="{{route === item.path}}">{{item.name}}</text>
-    </view>
-  </button>
-</view>

@@ -1,8 +1,0 @@
-<view wx:if="{{card}}" class="card r{{card.ratio}} {{gallery ? 'gallery' : ''}}" style="background:{{card.color}}">
-  <image wx:if="{{card.background}}" src="{{card.background}}" class="layer" mode="aspectFill" lazy-load="{{gallery}}"/>
-  <image src="{{card.subject}}" class="subject" mode="aspectFit" lazy-load="{{gallery}}"/>
-  <image wx:if="{{card.frame}}" src="{{card.frame}}" class="layer" mode="scaleToFill" lazy-load="{{gallery}}"/>
-  <text wx:if="{{number}}" class="number">{{number}}</text>
-  <text wx:if="{{number}}" class="english">{{card.english}}</text>
-  <view class="label"><text wx:if="{{card.special}}" class="star">✦ </text>{{card.name}}</view>
-</view>
