@@ -1,0 +1,8 @@
+<view class="page"><view class="head"><text class="title">{{name}}</text><button class="btn mini" bindtap="rename">改名</button><button class="btn mini" bindtap="remove">删除卡池</button></view>
+<view class="panel"><text class="subhead">抽卡概率</text>
+<view class="line"><text class="grow">普通闪卡</text><input class="pct" type="digit" data-field="normalRate" value="{{normalRate}}" bindinput="rateInput" aria-label="普通闪卡概率"/><text>%</text></view>
+<view class="line"><text class="grow">稀有闪卡</text><input class="pct" type="digit" data-field="rareRate" value="{{rareRate}}" bindinput="rateInput" aria-label="稀有闪卡概率"/><text>%</text></view>
+<view wx:if="{{status}}" class="count">{{status}}</view><button class="btn primary" bindtap="saveRates">保存概率</button></view>
+<view class="panel"><text class="subhead">卡片分配</text>
+<view wx:for="{{cards}}" wx:key="id" class="line"><image class="thumb" src="{{item.subject}}" mode="aspectFit"/><view class="grow card-name">{{item.name}} <text wx:if="{{item.special}}" class="pill">稀有</text></view>
+<switch color="#575346" checked="{{item.included}}" data-id="{{item.id}}" bindchange="toggle" aria-label="{{item.name}}加入卡池"/></view></view></view>
