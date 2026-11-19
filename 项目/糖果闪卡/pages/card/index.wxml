@@ -1,0 +1,23 @@
+<view class="room" wx:if="{{card}}">
+  <view class="display">
+    <view class="board" style="width:{{width}}px;height:{{height}}px">
+      <canvas wx:if="{{!flat}}" type="webgl" id="viewer" class="viewer" catchtouchstart="start" catchtouchmove="move" catchtouchend="end" catchtouchcancel="cancel" aria-label="{{card.name}}，拖动倾斜，轻点翻面"/>
+      <canvas type="2d" id="original" class="original {{flat?'shown':''}}" aria-hidden="{{!flat}}"/>
+    </view>
+  </view>
+  <view class="dock">
+    <view class="tools" wx:if="{{!flat}}">
+      <button class="tool" bindtap="flip" disabled="{{!ready}}">翻面</button>
+      <button class="tool {{motion?'on':''}}" bindtap="toggleMotion" disabled="{{!ready}}">{{motion?'关闭感应':'倾斜感应'}}</button>
+      <button class="tool {{adjust?'on':''}}" bindtap="adjust" disabled="{{!ready}}">调光效</button>
+    </view>
+    <view class="settings" wx:if="{{adjust}}">
+      <view class="slider"><text>景深</text><slider min="-30" max="30" step="1" value="{{depthTick}}" activeColor="#6867b1" block-size="16" data-key="depth" bindchanging="tune" bindchange="tune"/><text>{{depth}}</text></view>
+      <view class="slider"><text>轮廓光</text><slider min="0" max="20" step="1" value="{{glowTick}}" activeColor="#6867b1" block-size="16" data-key="glow" bindchanging="tune" bindchange="tune"/><text>{{glow}}</text></view>
+    </view>
+    <view class="exports">
+      <button class="export" bindtap="exportCard" disabled="{{!ready}}">查看合成原图</button>
+      <button wx:if="{{canDownloadCards}}" class="export share-file" bindtap="shareCardFile" disabled="{{sharingFile}}">{{sharingFile?'正在生成…':'发送互动卡'}}</button>
+    </view>
+  </view>
+</view>
