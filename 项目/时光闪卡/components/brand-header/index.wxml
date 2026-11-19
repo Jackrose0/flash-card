@@ -1,0 +1,5 @@
+<view class="brand" style="padding-top:{{top}}px;padding-right:{{end}}px;height:{{height}}px">
+  <image class="avatar" src="/assets/avatar.jpg" mode="aspectFill" aria-hidden="true"/>
+  <text class="brand-name">时光闪卡</text>
+  <view wx:if="{{roleName}}" class="role"><view class="role-dot"/>{{roleName}}</view>
+</view>
