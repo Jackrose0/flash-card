@@ -1,0 +1,32 @@
+.album-head { align-items: flex-start; margin: 2px 0 19px; }
+.album-count { margin-top: 3px; }
+.album-group {
+  margin: 0 0 12px;
+  border: 1px solid #e5e1d8;
+  border-radius: 21px;
+  background: #fbfaf7;
+  box-shadow: 0 7px 22px rgba(31, 27, 19, .07);
+}
+.group-head { box-sizing: border-box; display: flex; width: 100%; align-items: center; gap: 11px; padding: 14px; text-align: left; background: transparent; color: inherit; border-radius: 21px; line-height: 1.35; }
+.group-head::after,.cell::after { border: 0; }
+.chevron { color: #7f7769; font-size: 18px; transition: transform .18s ease; }
+.chevron.down { transform: rotate(90deg); }
+.group-name { min-width: 0; flex: 1; font-weight: 800; font-size: 17px; overflow-wrap: break-word; }
+.group-name .muted { font-weight: 400; font-size: 12px; margin-top: 3px; }
+.group-progress { font-weight: 650; font-size: 12px; white-space: nowrap; }
+.progress-count { font-variant-numeric: tabular-nums; }
+.complete { color: #4c7243; }
+.track { width: 100%; max-width: 130px; height: 4px; margin-top: 6px; border-radius: 99px; background: #eae6dc; }
+.track view { height: 100%; border-radius: inherit; background: linear-gradient(90deg,#ff7aa8,#ffcf6b,#a8ef9a); }
+.group-body { padding: 14px 14px 18px; border-top: 1px solid #ede9df; }
+.grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 17px 12px; }
+.cell { display: flex; flex-direction: column; align-items: stretch; padding: 0; margin: 0; color: inherit; min-width: 0; width: 100%; text-align: left; border-radius: 0; background: transparent; line-height: 1.35; }
+.card-art { border-radius: 7px; box-shadow: 0 3px 7px rgba(36, 26, 13, .16); }
+.card-name { margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; font-weight: 750; }
+.quantity { color: #746e63; margin-top: 2px; font-size: 11px; }
+.album-more { display: block; min-height: 44px; margin: 16px auto 0; }
+.missing .card-art { filter: grayscale(.7); opacity: .46; }
+.missing .card-name,.missing .quantity { color: #776f63; }
+@media (min-width: 600px) {
+  .grid { grid-template-columns: repeat(5,minmax(0,1fr)); }
+}

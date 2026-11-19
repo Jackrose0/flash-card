@@ -1,0 +1,37 @@
+<brand-header role-name="{{roleName}}"/>
+<view class="page tab-page">
+  <view class="head album-head">
+    <view><view class="title">我的卡组</view><view wx:if="{{ready}}" class="muted album-count">共 {{distinct}} 款 · {{total}} 张</view></view>
+    <picker wx:if="{{dev && who}}" range="{{names}}" value="{{whoIndex}}" bindchange="identity">
+      <view class="btn mini" aria-label="切换本机身份">{{who.name}} ▾</view>
+    </picker>
+    <button wx:elif="{{who}}" class="btn mini" bindtap="copyId">复制用户 ID</button>
+  </view>
+  <view wx:for="{{groups}}" wx:key="id" class="album-group">
+    <button class="group-head" data-index="{{index}}" bindtap="toggle" aria-expanded="{{item.id === openId}}">
+      <view class="group-name">
+        <text>{{item.name}}</text>
+        <view class="track"><view style="width:{{item.progress}}%"/></view>
+      </view>
+      <view class="group-progress">
+        <view><text class="progress-count">{{item.found}} / {{item.total}}</text><text wx:if="{{item.total && item.found === item.total}}" class="complete"> 已集齐</text></view>
+      </view>
+      <text class="chevron {{item.id === openId ? 'down' : ''}}" aria-hidden="true">›</text>
+    </button>
+    <view wx:if="{{item.id === openId}}" class="group-body">
+      <view wx:if="{{!cards.length && !loading && !failed}}" class="empty">暂无卡片</view>
+      <view wx:if="{{cards.length}}" class="grid">
+        <button wx:for="{{cards}}" wx:for-item="card" wx:key="id" class="cell {{card.count ? '' : 'missing'}}"
+          data-id="{{card.id}}" bindtap="detail" aria-label="{{card.name}}，{{card.count ? card.count + ' 张' : '未获得'}}">
+          <view class="card-art"><card-face card="{{card}}" gallery="{{true}}"/></view>
+          <text class="card-name">{{card.special ? '✦ ' : ''}}{{card.name}}</text>
+          <text class="quantity">{{card.count ? card.count + ' 张' : '未获得'}}</text>
+        </button>
+      </view>
+      <button wx:if="{{nextOffset !== null}}" class="btn mini album-more" disabled="{{loading}}" bindtap="loadPage">{{loading ? '加载中…' : failed ? '重试' : '查看更多'}}</button>
+    </view>
+  </view>
+  <view wx:if="{{ready && !groups.length}}" class="empty">暂无收藏
+    <view class="space"><button class="btn primary" bindtap="packs">去抽卡</button></view>
+  </view>
+</view>
