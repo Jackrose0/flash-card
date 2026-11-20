@@ -12,6 +12,7 @@ page {
 .subhead { font-size: 32rpx; font-weight: 750; }
 .muted,.count { color: #746e63; font-size: 25rpx; }
 .count { font-variant-numeric: tabular-nums; }
+.review-reason { overflow-wrap: break-word; white-space: pre-wrap; }
 .panel {
   margin: 18rpx 0;
   padding: 24rpx;

@@ -1,11 +1,18 @@
 .room { position: relative; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .top { position: absolute; z-index: 1; left: 16px; right: 104px; display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 16px; pointer-events: none; }
-.top text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pool-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.test-label { flex: none; font-size: 13px; color: #5d574b; }
 .back { display: grid; place-items: center; flex: none; min-height: 44px; margin: 0; padding: 0 15px; border-radius: 999px; background: #fffefae8; color: #20201d; font-size: 13px; line-height: 1.4; pointer-events: auto; }
 .back::after { border: 0; }
 .stage { position: relative; flex: 1; min-height: 0; }
 .scene { display: block; width: 100%; height: 100%; }
 .touch-layer { position: absolute; inset: 0; }
-.foot { display: grid; justify-items: center; gap: 8px; padding: 6px 16px calc(18px + env(safe-area-inset-bottom)); font-size: 13px; color: #635d52; }
+.foot { display: grid; justify-items: center; gap: 8px; min-height: calc(95px + env(safe-area-inset-bottom)); box-sizing: border-box; padding: 6px 12px calc(18px + env(safe-area-inset-bottom)); font-size: 13px; color: #5d574b; }
 .foot text { min-height: 19px; }
-.foot button { font-weight: 700; box-shadow: 0 5px 16px rgba(27, 24, 21, .18); }
+.result-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; }
+.result-actions button,.inspect-head button { padding-inline: 12px; min-height: 44px; white-space: nowrap; font-size: 14px; font-weight: 700; }
+.under-inspector { visibility: hidden; }
+.inspector { position: absolute; z-index: 2; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; gap: 10px; background: #fbfaf7; padding: 16px 14px calc(14px + env(safe-area-inset-bottom)); }
+.inspect-head { display: flex; align-items: center; justify-content: space-between; font-size: 18px; font-weight: 750; }
+.inspect-art { flex: 1; min-height: 0; }
+.inspect-info { font-size: 14px; color: #5d574b; text-align: center; overflow-wrap: anywhere; }

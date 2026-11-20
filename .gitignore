@@ -2,6 +2,10 @@
 /*
 !/.gitignore
 !/README.md
+!/PRODUCT.md
+!/.impeccable/
+/.impeccable/*
+!/.impeccable/config.json
 !/项目/
 /项目/*
 

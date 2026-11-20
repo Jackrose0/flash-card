@@ -24,7 +24,5 @@
   background: transparent;
 }
 .nav::after { border: 0; }
-.nav-item { display: flex; align-items: center; gap: 7px; padding: 0 14px; height: 31px; border-radius: 99px; white-space: nowrap; color: #1a1a1a; font: 700 13px/1 -apple-system, "PingFang SC", sans-serif; }
-.dot { width: 8px; height: 8px; border-radius: 99px; background: #b9b1a1; }
-.selected .nav-item { background: #fffefa; box-shadow: 0 3px 9px rgba(29, 24, 16, .13); }
-.selected .dot { width: 17px; background: linear-gradient(90deg,#ff7aa8,#ffcf6b,#a8ef9a); }
+.nav-item { display: flex; align-items: center; padding: 0 13px; height: 31px; border-radius: 99px; white-space: nowrap; color: #5d574b; font: 700 13px/1 -apple-system, "PingFang SC", sans-serif; }
+.selected .nav-item { background: #fffefa; color: #1a1a1a; box-shadow: 0 3px 9px rgba(29, 24, 16, .13); }

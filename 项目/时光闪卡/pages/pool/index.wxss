@@ -1,2 +1,6 @@
 .card-name{padding:0 12rpx;font-weight:650}.rate{margin-right:10rpx;font-variant-numeric:tabular-nums}.title{word-break:break-all}.head .btn{flex-shrink:0}
 .pct{width:105rpx;background:#f5efea;text-align:right;margin-right:6rpx;border-radius:10rpx;padding:10rpx;}
+.pool-pack{width:86px;height:116px;display:block;margin:8px 0}
+.pool-review-actions{gap:10px;margin-top:14px;flex-wrap:wrap}
+.type-row { gap: 8px; }
+.type-row .entry { min-width: 0; }

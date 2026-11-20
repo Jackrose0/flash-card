@@ -1,15 +1,38 @@
 <view class="room" style="background-color:{{pack.color}}">
-  <view class="top" style="top:{{top}}px;min-height:{{barHeight}}px">
+  <view class="top {{inspecting ? 'under-inspector' : ''}}" aria-hidden="{{inspecting}}" style="top:{{top}}px;min-height:{{barHeight}}px">
     <button aria-label="返回卡池" bindtap="back" class="back">‹ 卡池</button>
-    <text>{{poolName}}</text>
+    <text class="pool-title">{{poolName}}</text><text wx:if="{{preview}}" class="test-label">私测</text>
   </view>
-  <view class="stage">
-    <canvas id="scene" type="2d" class="scene" aria-hidden="true"/>
+  <view class="stage {{inspecting ? 'under-inspector' : ''}}" aria-hidden="{{inspecting}}">
+    <canvas id="scene" type="2d" class="scene" hidden="{{inspecting}}" aria-hidden="true"/>
     <view class="touch-layer" catchtouchstart="start" catchtouchmove="move" catchtouchend="end"
       catchtouchcancel="cancel" aria-label="{{opened ? '点卡片翻面' : poolName + '卡包'}}"/>
   </view>
-  <view class="foot">
-    <text>{{hint}}</text>
-    <button class="btn primary" disabled="{{busy || !ready}}" bindtap="action">{{opened ? '再拆一包' : '一键拆包'}}</button>
+  <view class="foot {{inspecting ? 'under-inspector' : ''}}" aria-hidden="{{inspecting}}">
+    <text aria-live="polite">{{hint}}</text>
+    <view class="result-actions">
+      <button wx:if="{{canGoAlbum}}" class="btn primary" bindtap="album">查看卡组</button>
+      <block wx:if="{{opened}}">
+        <button class="btn {{preview ? 'primary' : ''}}" bindtap="inspect">逐张查看</button>
+        <button class="btn" bindtap="again">{{preview ? '再试一发' : '再拆一包'}}</button>
+      </block>
+      <block wx:else>
+        <button wx:if="{{blocked}}" class="btn primary" disabled="{{checkedIn || checkingIn}}" bindtap="checkin">{{checkedIn ? '今日已签到' : '签到 +' + checkinReward}}</button>
+        <button class="btn {{blocked || canGoAlbum ? '' : 'primary'}}" disabled="{{busy || !ready || blocked}}" bindtap="action">{{hasResponse ? '重试加载' : pending ? '找回本次结果' : preview ? '测试拆包' : '拆一包 · ' + drawCost + ' 星尘'}}</button>
+      </block>
+    </view>
+  </view>
+  <view wx:if="{{inspecting}}" class="inspector" role="dialog" aria-label="逐张查看"
+    style="padding-top:{{top + barHeight + 12}}px">
+    <view class="inspect-head"><text>逐张查看</text><button class="btn" bindtap="closeInspect">返回总览</button></view>
+    <view class="inspect-art" catchtouchstart="startInspect" catchtouchend="endInspect" catchtouchcancel="cancelInspect">
+      <canvas class="scene" type="2d" id="inspectCanvas" aria-hidden="true"/>
+    </view>
+    <view class="inspect-info" aria-live="polite">{{lookIndex + 1}} / {{lookCount}} · {{lookName}}<text wx:if="{{lookTier}}"> · {{lookTier}}</text></view>
+    <view class="result-actions">
+      <button class="btn" disabled="{{lookCount < 2}}" bindtap="previous">上一张</button>
+      <button class="btn primary" bindtap="flipInspect">{{lookFront ? '看背面' : '看正面'}}</button>
+      <button class="btn" disabled="{{lookCount < 2}}" bindtap="next">下一张</button>
+    </view>
   </view>
 </view>

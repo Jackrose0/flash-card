@@ -15,17 +15,18 @@ function lightSetting(key,ticks){
 
 Page({
   data:{ready:false,depth:0,glow:.15,adjust:false,motion:false,flat:false},
-  onLoad(query){this.cardId=query.id;},
+  onLoad(query){this.cardId=query.id;this.studioPreview=query.studio==='1';},
   async onReady(){
     try{
-      const db=await store.read(),card=db.cards.find(c=>c.id===this.cardId);
+      const detail=await (this.studioPreview?store.readStudio():store.readCard(this.cardId));
+      const card=this.studioPreview?detail.cards.find(c=>c.id===this.cardId):detail.card;
       if(!card){wx.navigateBack();return;}
       const win=wx.getWindowInfo(),ratio=dimensions(card.ratio);
       const width=Math.min(win.windowWidth-12,(win.windowHeight*.67)*ratio);
       const prefs=wx.getStorageSync(settingsKey)||{};
       const depth=lightSetting('depth',(prefs.depth??0)*ticksPerUnit.depth);
       const glow=lightSetting('glow',(prefs.glow??.15)*ticksPerUnit.glow);
-      await new Promise(ok=>this.setData({card,width,height:width/ratio,canDownloadCards:db.who.canDownloadCards,...depth,...glow},ok));
+      await new Promise(ok=>this.setData({card,width,height:width/ratio,canDownloadCards:detail.who.canDownloadCards,...depth,...glow},ok));
       if((prefs.depth!=null && prefs.depth!==depth.depth)||(prefs.glow!=null && prefs.glow!==glow.glow)){
         wx.setStorageSync(settingsKey,{depth:depth.depth,glow:glow.glow});
       }
@@ -42,6 +43,7 @@ Page({
       this.x=-3;this.y=-8;this.setData({ready:true});this.requestPose();
     }catch(e){
       if(this.disposed)return;
+      if(e.status===404){wx.navigateBack();return;}
       if(this.s && sources(this.data.card).every(src=>this.s.images.has(src))){
         const {ctx,w,h,images}=this.s;ctx.clearRect(0,0,w,h);ctx.save();ctx.translate(w/2,h/2);
         cardFace(ctx,images,this.data.card,w,h,true);ctx.restore();

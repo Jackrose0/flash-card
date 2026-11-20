@@ -1,8 +1,27 @@
-<view class="page"><view class="head"><text class="title">{{name}}</text><button class="btn mini" bindtap="rename">改名</button><button class="btn mini" bindtap="remove">删除卡池</button></view>
-<view class="panel"><text class="subhead">抽卡概率</text>
-<view class="line"><text class="grow">普通闪卡</text><input class="pct" type="digit" data-field="normalRate" value="{{normalRate}}" bindinput="rateInput" aria-label="普通闪卡概率"/><text>%</text></view>
-<view class="line"><text class="grow">稀有闪卡</text><input class="pct" type="digit" data-field="rareRate" value="{{rareRate}}" bindinput="rateInput" aria-label="稀有闪卡概率"/><text>%</text></view>
-<view wx:if="{{status}}" class="count">{{status}}</view><button class="btn primary" bindtap="saveRates">保存概率</button></view>
-<view class="panel"><text class="subhead">卡片分配</text>
-<view wx:for="{{cards}}" wx:key="id" class="line"><image class="thumb" src="{{item.subject}}" mode="aspectFit"/><view class="grow card-name">{{item.name}} <text wx:if="{{item.special}}" class="pill">稀有</text></view>
-<switch color="#575346" checked="{{item.included}}" data-id="{{item.id}}" bindchange="toggle" aria-label="{{item.name}}加入卡池"/></view></view></view>
+<view class="page"><view class="head"><view><text class="title">{{name}}</text><view class="count">{{reviewLabel}}</view></view><button wx:if="{{editable}}" class="btn mini" bindtap="rename">改名</button></view>
+<view wx:if="{{reviewReason}}" class="panel"><text class="subhead">退回原因</text><view class="count space review-reason">{{reviewReason}}</view></view>
+<view class="panel"><text class="subhead">卡包</text><image wx:if="{{pack}}" class="pool-pack" src="{{pack.src}}" mode="aspectFit"/>
+<picker wx:if="{{editable}}" range="{{packs}}" range-key="name" value="{{packIndex}}" bindchange="changePack"><view class="entry">{{packs[packIndex].name}} ▾</view></picker>
+<text wx:elif="{{!pack}}" class="count">默认卡包</text>
+<view class="row wrap space"><button wx:if="{{editable}}" class="btn mini" bindtap="uploadCover">上传封面</button><button wx:if="{{own}}" class="btn mini" bindtap="testPool">私测抽卡</button></view></view>
+<view class="panel"><text class="subhead">闪卡类型与概率</text>
+<view class="count">实际 · {{actualRatesText}}</view>
+<block wx:if="{{editable}}">
+<view class="line"><text class="grow">每发张数</text><input class="pct" type="number" data-field="cardsPerPack" value="{{cardsPerPack}}" bindinput="configInput" aria-label="每发张数"/></view>
+<view wx:for="{{types}}" wx:key="id" class="line type-row">
+  <input class="entry grow" maxlength="18" value="{{item.name}}" data-index="{{index}}" data-field="name" bindinput="configInput" placeholder="类型名称" aria-label="类型名称"/>
+  <input class="pct" type="digit" value="{{item.percent}}" data-index="{{index}}" data-field="percent" bindinput="configInput" aria-label="配置概率"/><text>%</text>
+  <button class="btn mini" data-index="{{index}}" bindtap="removeType">移除</button>
+</view>
+<view class="row wrap"><button class="btn mini" bindtap="addType">新增类型</button><button class="btn primary" bindtap="saveConfig">保存配置</button></view></block></view>
+<view class="panel"><view class="line"><text class="subhead grow">卡片分配</text><text class="count">{{memberCount}} 张</text></view>
+<view wx:for="{{cards}}" wx:key="id" class="line"><image class="thumb" src="{{item.subject}}" mode="aspectFit"/><view class="grow card-name">{{item.name}}</view>
+<picker range="{{typeNames}}" value="{{item.typeIndex}}" disabled="{{!item.canAssign || memberSaving}}" data-index="{{index}}" bindchange="changeType">
+  <view class="count">{{typeNames[item.typeIndex]}} {{item.canAssign ? '▾' : ''}}</view>
+</picker>
+<switch wx:if="{{editable}}" color="#575346" checked="{{item.included}}" disabled="{{memberSaving}}" data-index="{{index}}" bindchange="toggle" aria-label="{{item.name}}加入卡池"/></view></view>
+<view class="row pool-review-actions">
+  <button wx:if="{{reviewState==='draft' || reviewState==='returned'}}" class="btn primary" bindtap="submit">提交审核</button>
+  <button wx:if="{{canWithdraw}}" class="btn" bindtap="withdraw">撤回修改</button>
+  <button wx:if="{{editable}}" class="btn mini danger" bindtap="remove">删除卡池</button>
+</view></view>

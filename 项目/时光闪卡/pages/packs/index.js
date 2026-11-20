@@ -12,22 +12,16 @@ Page({
 
   async onShow() {
     try {
-      const db = await store.read();
+      const db = await store.readHome();
       store.syncNav(this);
-      const cards = new Set(db.cards.map(card => card.id));
-      const pools = [...db.pools].sort((a, b) => Number(b.id === 'kanto') - Number(a.id === 'kanto'))
-        .map((pool, index) => ({
-          id: pool.id,
-          name: pool.name,
-          count: pool.entries.filter(entry => entry.chance > 0 && cards.has(entry.id)).length,
-          src: pool.pack?.src || fallbackPacks[index % fallbackPacks.length]
-        }));
+      const pools = db.pools.map((pool,index)=>({...pool,src:pool.pack?.src||fallbackPacks[index%fallbackPacks.length]}));
       const previous = pools.findIndex(pool => pool.id === this.data.pools[this.data.active]?.id);
       this.position = this.target = Math.max(0, previous);
       const roleName = {owner: '店主', maker: '制卡员'}[db.who.role] || '';
-      this.setData({pools, roleName, cardsPerPack: db.cardsPerPack ?? 3, loading: false, error: ''}, () => this.measure());
+      const {stardust,checkedIn,checkinReward,drawCost,privatePools}=db;
+      this.setData({pools,roleName,stardust,checkedIn,checkinReward,drawCost,privatePools,loading:false,error:''}, () => this.measure());
     } catch (error) {
-      this.setData({error: error.message, loading: false});
+      this.setData({pools:[],error:error.message,loading:false});
     }
   },
 
@@ -165,5 +159,18 @@ Page({
   open() {
     const pool = this.data.pools[this.data.active];
     if (pool?.count) wx.navigateTo({url: '/pages/open/index?pool=' + encodeURIComponent(pool.id)});
+  },
+
+  async checkin() {
+    this.setData({checkingIn:true});
+    try{this.setData(await store.api('/checkin','POST'));}
+    catch(error){wx.showToast({title:error.message,icon:'none'});}
+    finally{this.setData({checkingIn:false});}
+  },
+
+  toggleTests() {this.setData({testsOpen:!this.data.testsOpen},()=>this.measure());},
+
+  testPool(event) {
+    wx.navigateTo({url:'/pages/open/index?preview=1&pool='+encodeURIComponent(event.currentTarget.dataset.id)});
   }
 });

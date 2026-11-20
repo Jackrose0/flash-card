@@ -49,7 +49,7 @@ def initialize(path):
         with db:
             db.execute('BEGIN IMMEDIATE')
             version = db.execute('PRAGMA user_version').fetchone()[0]
-            if version >= 4:
+            if version >= 8:
                 return
             if version < 1:
                 if not db.execute('SELECT 1 FROM pools LIMIT 1').fetchone():
@@ -75,8 +75,53 @@ def initialize(path):
                     db.execute('''UPDATE cards SET background=? WHERE background=''
                         AND id GLOB ? AND id IN (SELECT card FROM card_print)''',
                         (f'/h5/{directory}/field.webp', f'{directory}-*'))
-            install_card_materials(db)
-            db.execute('PRAGMA user_version=4')
+            if version < 4:
+                install_card_materials(db)
+            if version < 5:
+                db.execute('ALTER TABLE pools ADD COLUMN author TEXT REFERENCES users(id)')
+                db.execute("ALTER TABLE pools ADD COLUMN status TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('draft','pending','approved','returned'))")
+                db.execute("ALTER TABLE pools ADD COLUMN pack_src TEXT NOT NULL DEFAULT ''")
+                db.execute("ALTER TABLE pools ADD COLUMN review_key TEXT NOT NULL DEFAULT ''")
+                db.execute('ALTER TABLE cards ADD COLUMN author TEXT REFERENCES users(id)')
+                db.execute("ALTER TABLE cards ADD COLUMN status TEXT NOT NULL DEFAULT 'approved' CHECK(status IN ('pending','approved','returned'))")
+                db.execute("ALTER TABLE cards ADD COLUMN review_key TEXT NOT NULL DEFAULT ''")
+            if version < 6:
+                db.execute('ALTER TABLE users ADD COLUMN username_key TEXT')
+                db.execute('CREATE UNIQUE INDEX unique_username ON users(username_key) WHERE username_key IS NOT NULL')
+                db.execute('ALTER TABLE users ADD COLUMN banned INTEGER NOT NULL DEFAULT 0')
+                db.execute('ALTER TABLE pools ADD COLUMN listed INTEGER NOT NULL DEFAULT 1')
+                db.execute('''CREATE TABLE hidden_pool_cards(
+                    pool TEXT NOT NULL REFERENCES pools, card TEXT NOT NULL REFERENCES cards,
+                    PRIMARY KEY(pool,card)) WITHOUT ROWID''')
+                db.execute('''CREATE VIEW drawable_entries AS
+                    SELECT e.pool,e.card,e.rowid AS position,c.special FROM entries e
+                    JOIN pools p ON p.id=e.pool JOIN cards c ON c.id=e.card
+                    LEFT JOIN hidden_pool_cards h ON h.pool=e.pool AND h.card=e.card
+                    WHERE p.archived=0 AND p.listed=1 AND p.status='approved' AND c.status='approved' AND h.card IS NULL''')
+            if version < 7:
+                db.execute("ALTER TABLE pools ADD COLUMN review_reason TEXT NOT NULL DEFAULT ''")
+                db.execute("ALTER TABLE cards ADD COLUMN review_reason TEXT NOT NULL DEFAULT ''")
+            db.execute('ALTER TABLE users ADD COLUMN stardust INTEGER NOT NULL DEFAULT 50')
+            db.execute("ALTER TABLE users ADD COLUMN checkin_day TEXT NOT NULL DEFAULT ''")
+            db.execute('ALTER TABLE pools ADD COLUMN cards_per_pack INTEGER NOT NULL DEFAULT 10')
+            db.execute("ALTER TABLE pools ADD COLUMN types TEXT NOT NULL DEFAULT '[]'")
+            db.execute("ALTER TABLE entries ADD COLUMN tier TEXT NOT NULL DEFAULT ''")
+            db.execute("ALTER TABLE draw_cards ADD COLUMN tier_name TEXT NOT NULL DEFAULT ''")
+            db.execute('''CREATE VIEW pool_types AS
+                SELECT id AS pool,'normal' AS tier,'普通闪卡' AS name,10000-rareRate AS rate FROM pools WHERE types='[]'
+                UNION ALL SELECT id,'rare','稀有闪卡',rareRate FROM pools WHERE types='[]'
+                UNION ALL SELECT p.id,json_extract(j.value,'$.id'),json_extract(j.value,'$.name'),
+                    json_extract(j.value,'$.rate') FROM pools p,json_each(p.types) j''')
+            db.execute('''CREATE VIEW draw_candidates AS
+                SELECT d.*,COALESCE(NULLIF(e.tier,''),CASE WHEN d.special THEN 'rare' ELSE 'normal' END) AS tier
+                FROM drawable_entries d JOIN entries e ON e.pool=d.pool AND e.card=d.card''')
+            db.execute('''CREATE VIEW draw_types AS
+                WITH populated AS (
+                    SELECT e.pool,e.tier,t.name,t.rate,COUNT(*) AS size FROM draw_candidates e
+                    JOIN pool_types t ON t.pool=e.pool AND t.tier=e.tier GROUP BY e.pool,e.tier
+                )
+                SELECT *,CASE WHEN SUM(rate) OVER (PARTITION BY pool)>0 THEN rate ELSE 1 END AS weight FROM populated''')
+            db.execute('PRAGMA user_version=8')
     finally:
         db.close()
 

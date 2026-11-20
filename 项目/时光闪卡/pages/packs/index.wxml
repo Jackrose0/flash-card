@@ -2,6 +2,14 @@
   <brand-header role-name="{{roleName}}"/>
   <view class="draw-main">
     <view class="draw-title">抽卡中心</view>
+    <view wx:if="{{!loading && !error}}" class="draw-wallet">
+      <text>✦ {{stardust}} 星尘</text><button class="btn mini" disabled="{{checkedIn || checkingIn}}" bindtap="checkin">{{checkedIn ? '今日已签到' : '签到 +' + checkinReward}}</button>
+      <view wx:if="{{stardust < drawCost}}" class="dust-warning">星尘不足</view>
+    </view>
+    <view wx:if="{{privatePools.length}}" class="private-pools">
+      <button class="btn mini" bindtap="toggleTests" aria-expanded="{{testsOpen}}">我的测试卡池 {{testsOpen ? '⌃' : '⌄'}}</button>
+      <view wx:if="{{testsOpen}}" class="wrap"><button wx:for="{{privatePools}}" wx:key="id" class="btn mini" data-id="{{item.id}}" bindtap="testPool">{{item.name}}</button></view>
+    </view>
     <view wx:if="{{error}}" class="empty">
       <text>{{error}}</text>
       <view><button class="btn mini space" bindtap="onShow">重试</button></view>
@@ -16,17 +24,17 @@
           <image src="{{item.src}}" mode="aspectFit" aria-hidden="true"/>
         </button>
       </view>
-      <view class="pool-summary">
-        <view class="pool-name">{{pools[active].name}}</view>
-        <view class="pool-meta">{{pools[active].count}} 款卡片 · 每包 {{cardsPerPack}} 张</view>
-        <button class="btn primary draw-action" bindtap="open" disabled="{{!pools[active].count}}">
-          {{pools[active].count ? '拆一包' : '暂不可拆'}}<text wx:if="{{pools[active].count}}" class="spark" aria-hidden="true">✦</text>
-        </button>
-      </view>
-      <view class="pool-dots" aria-label="卡池">
+      <view class="pool-dots" aria-label="选择卡池">
         <button wx:for="{{pools}}" wx:key="id" class="pool-dot {{index === active ? 'chosen' : ''}}"
           data-index="{{index}}" bindtap="select" aria-label="{{item.name}}" aria-pressed="{{index === active}}">
           <view/>
+        </button>
+      </view>
+      <view class="pool-summary">
+        <view class="pool-name">{{pools[active].name}}</view>
+        <view class="pool-meta">{{pools[active].count}} 款卡片 · 每发 {{pools[active].cardsPerPack}} 张 · {{drawCost}} 星尘</view>
+        <button class="btn primary draw-action" bindtap="open" disabled="{{!pools[active].count}}">
+          {{pools[active].count ? '查看卡包' : '暂不可拆'}}
         </button>
       </view>
     </block>

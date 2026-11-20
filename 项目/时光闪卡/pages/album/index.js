@@ -6,6 +6,11 @@ Page({
     openId: '', cards: [], nextOffset: 0, loading: false, failed: false},
 
   async onShow() {
+    if (this.cardReturnScroll !== undefined) {
+      wx.pageScrollTo({scrollTop: this.cardReturnScroll, duration: 0});
+      this.cardReturnScroll = undefined;
+      return;
+    }
     try {
       const db = await store.readAlbum();
       store.syncNav(this);
@@ -16,6 +21,10 @@ Page({
     } catch (error) {
       report(error);
     }
+  },
+
+  onPageScroll({scrollTop}) {
+    this.scrollTop = scrollTop;
   },
 
   toggle(event) {
@@ -60,6 +69,10 @@ Page({
   },
 
   detail(event) {
-    wx.navigateTo({url: '/pages/card/index?id=' + encodeURIComponent(event.currentTarget.dataset.id)});
+    const scrollTop = this.scrollTop || 0;
+    wx.navigateTo({
+      url: '/pages/card/index?id=' + encodeURIComponent(event.currentTarget.dataset.id),
+      success: () => { this.cardReturnScroll = scrollTop; }
+    });
   }
 });

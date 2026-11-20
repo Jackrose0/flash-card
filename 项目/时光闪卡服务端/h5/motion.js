@@ -1,6 +1,6 @@
 (function setupMotion(){
   'use strict';
-  const {render,revealDuration,dimensions,sources,cardFace,createCardRenderer}=CardEngine;
+  const {render,revealDuration,dimensions,sources,cardFace,createCardRenderer,inspectCard}=CardEngine;
   const images=new Map(),loading=new Map();
   function load(src,cache=images,pending=loading){
     if(cache.has(src))return Promise.resolve();
@@ -20,18 +20,52 @@
     return {canvas,ctx,images:cache,w,h};
   }
   const skins=[{id:'peach',color:'#f7dce4'},{id:'pudding',color:'#dbece2'},{id:'whale',color:'#e4dff3'}];
-  function pack(root,pool,{api,escape,toast}){
-    const key='candy.pending.'+pool.id;
-    const stored=JSON.parse(sessionStorage.getItem(key)||'null');
-    const skin=pool.pack||skins.find(s=>s.id===stored?.skin)||skins[Math.floor(Math.random()*skins.length)];
-    const bytes=crypto.getRandomValues(new Uint32Array(4));
-    const requestId=stored?.requestId||Array.from(bytes,n=>n.toString(16).padStart(8,'0')).join('');
-    const m={pack:skin,p:0,dir:1,born:[],cards:[],flips:[],openAt:null,targets:[]};
-    root.innerHTML=`<section class="stage pack-view" style="--pool:${skin.color}"><div class="pack-title"><a class="back" href="#home">‹ 卡池</a><strong>${escape(pool.name)}</strong></div><canvas class="scene" aria-label="拆包画布"></canvas><footer class="stage-foot"><p role="status">正在取卡包…</p><div class="row"><button class="pill" disabled>一键拆包</button><a class="soft" hidden href="#album">查看卡组</a></div></footer></section>`;
-    const canvas=root.querySelector('canvas'),hint=root.querySelector('p'),button=root.querySelector('button'),album=root.querySelector('[href="#album"]');
+  function pack(root,pool,{api,escape,toast,preview=false,wallet}){
+    const drawCost=wallet.drawCost;
+    const key=preview?null:'candy.draw.pending.'+wallet.who.id+'.'+pool.id;
+    let pending=key?JSON.parse(sessionStorage.getItem(key)||'null'):null;
+    const skin=pool.pack||skins.find(s=>s.id===pending?.skin)||skins[Math.floor(Math.random()*skins.length)];
+    const m={pack:skin,p:0,dir:1,cards:[],flips:[],openAt:null,targets:[]};
+    root.innerHTML=`<section class="stage pack-view" style="--pool:${skin.color}">
+      <div class="pack-title"><a class="back" href="#home">‹ 卡池</a><strong>${escape(pool.name)}</strong>${preview?'<span class="test-label">私测</span>':''}</div>
+      <canvas class="scene" aria-hidden="true"></canvas>
+      <footer class="stage-foot"><p role="status">正在取卡包…</p>
+        <div class="pack-wallet" data-wallet hidden><strong data-balance></strong><button class="soft" type="button" data-sign hidden></button></div>
+        <div class="row"><a class="pill" hidden href="#album">查看卡组</a><button class="pill" data-open disabled>拆一包</button>
+          <button class="soft" data-inspect hidden>逐张查看</button><button class="soft" data-again hidden></button></div>
+      </footer>
+      <dialog class="pack-inspector" aria-labelledby="pack-inspect-title">
+        <div class="inspect-head"><h2 id="pack-inspect-title">逐张查看</h2><button class="soft" data-close autofocus>返回总览</button></div>
+        <div class="inspect-art"><canvas aria-hidden="true"></canvas></div>
+        <div class="inspect-info" role="status"></div>
+        <div class="inspect-buttons"><button class="soft" data-previous>上一张</button><button class="pill" data-flip>看背面</button><button class="soft" data-next>下一张</button></div>
+      </dialog>
+    </section>`;
+    const canvas=root.querySelector('.scene'),hint=root.querySelector('p'),button=root.querySelector('[data-open]'),album=root.querySelector('[href="#album"]');
+    const walletBar=root.querySelector('[data-wallet]'),balance=root.querySelector('[data-balance]'),sign=root.querySelector('[data-sign]');
+    const again=root.querySelector('[data-again]'),inspect=root.querySelector('[data-inspect]'),dialog=root.querySelector('.pack-inspector');
     const title=root.querySelector('.pack-title');
-    let s,bounds,drag,frame,autoTear,dead=false,busy=false,ready=false,revealed=false;
+    let s,bounds,drag,frame,autoTear,response,signing=false,dead=false,busy=false,ready=false,revealed=false;
     const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const short=()=>!preview&&wallet.stardust<drawCost;
+    const canTear=()=>ready&&!busy&&!revealed&&!pending&&!response&&!short();
+    function refreshActions(message){
+      walletBar.hidden=preview||revealed;
+      if(!preview){
+        balance.textContent=`余额 ${wallet.stardust} 星尘`;
+        sign.hidden=!short()||!!pending||!!response;
+        sign.disabled=wallet.checkedIn||signing;
+        sign.textContent=wallet.checkedIn?'今日已签到':`签到 +${wallet.checkinReward}`;
+      }
+      button.disabled=busy||!ready||(!pending&&!response&&short());
+      button.textContent=response?'重试加载':pending?'找回本次结果':preview?'测试拆包':`拆一包 · ${drawCost} 星尘`;
+      hint.textContent=message||(pending?'上次拆包结果未确认':short()?`星尘不足 · 每发 ${drawCost} 星尘`:
+        preview?`仅自己可见 · ${pool.cardsPerPack} 张/发`:'按住卡包，向一侧撕开');
+    }
+    function clearPending(){
+      if(key)sessionStorage.removeItem(key);
+      pending=null;
+    }
     function draw(){
       frame=0;if(dead||!s||!ready)return;
       const now=performance.now();
@@ -42,8 +76,11 @@
       }
       bounds=render(s,m,now);
       if(m.openAt!==null&&now-m.openAt>=revealDuration(m.cards.length)&&!revealed){
-        revealed=true;hint.textContent='已获得 '+m.cards.length+' 张';canvas.setAttribute('aria-label','点卡片翻面');
-        button.disabled=false;button.textContent='再拆一包';album.hidden=false;
+        revealed=true;
+        hint.textContent=(preview?'本次试抽 ':'已获得 ')+m.cards.length+' 张';
+        button.hidden=true;walletBar.hidden=true;album.hidden=preview;
+        inspect.hidden=false;again.hidden=false;again.textContent=preview?'再试一发':'再拆一包';
+        if(preview)inspect.className='pill';
       }
       if(!revealed||m.flips.some(f=>f&&now-f.at<450))frame=requestAnimationFrame(draw);
     }
@@ -54,38 +91,56 @@
       s=surface(canvas,box.width,box.height);redraw();
     });resize.observe(canvas);
     async function open(){
-      if(busy||revealed)return;
-      busy=true;drag=null;button.disabled=true;hint.textContent='正在拆包…';
+      if(busy||revealed||!ready||(!pending&&!response&&short()))return;
+      const resumeOnly=!!pending;
+      const requestId=pending?.requestId||Array.from(crypto.getRandomValues(new Uint32Array(4)),n=>n.toString(16).padStart(8,'0')).join('');
+      const requestSkin=pending?.skin||skin.id;
+      busy=true;drag=null;button.disabled=true;hint.textContent=resumeOnly?'正在找回结果…':'正在拆包…';
+      if(key&&!pending){pending={skin:requestSkin,requestId};sessionStorage.setItem(key,JSON.stringify(pending));}
       try{
-        sessionStorage.setItem(key,JSON.stringify({skin:skin.id,requestId}));
-        const res=await api('draws','POST',{pool:pool.id,skin:skin.id,requestId,thumbnails:true});
+        response=response||await api('draws','POST',{pool:pool.id,skin:requestSkin,requestId,thumbnails:true,preview,resumeOnly});
         if(dead)return;
-        await Promise.all(res.cards.flatMap(sources).map(src=>load(src)));
+        if(!preview)wallet.stardust=response.stardust;
+        await Promise.all(response.cards.flatMap(sources).map(src=>load(src)));
         if(dead)return;
-        m.p=1;m.cards=res.cards;
+        m.p=1;m.cards=response.cards;
         m.openAt=performance.now()-(reduced?revealDuration(m.cards.length):0);
-        hint.textContent='';sessionStorage.removeItem(key);redraw();
-      }catch(e){if(dead)return;busy=false;button.disabled=false;button.textContent='重试拆包';hint.textContent=e.message;redraw();}
+        hint.textContent='';clearPending();redraw();
+      }catch(e){
+        if(!response&&e.status>=400&&e.status<500&&e.status!==408)clearPending();
+        if(dead)return;
+        if(Number.isFinite(e.stardust)){wallet.stardust=e.stardust;wallet.checkedIn=e.checkedIn;}
+        busy=false;m.p=0;
+        if(response&&!preview)album.hidden=false;
+        refreshActions(response&&!preview?'已收入卡组，卡图加载失败':e.code==='insufficient_stardust'?'星尘不足 · 每发 '+drawCost+' 星尘':e.message);
+        redraw();
+      }
     }
     async function start(){
       try{await load(skin.src||'/assets/'+skin.id+'-pack.png');if(dead)return;
-        ready=true;button.disabled=false;hint.textContent='按住卡包，向一侧撕开';redraw();
-        if(stored)open();
+        ready=true;refreshActions();redraw();
       }catch(e){if(dead)return;hint.textContent=e.message;button.disabled=false;button.textContent='重新加载';}
     }
     function finishTear(){
+      if(!canTear())return;
       if(reduced||m.p===1){m.p=1;open();return;}
       drag=null;button.disabled=true;hint.textContent='';
       autoTear={at:performance.now(),from:m.p,duration:m.p?180:430};redraw();
     }
     button.onclick=()=>{
-      if(revealed){cleanup();window.dispatchEvent(new HashChangeEvent('hashchange'));return;}
       if(!ready){start();return;}
-      finishTear();
+      if(pending||response)open();else finishTear();
+    };
+    again.onclick=()=>window.dispatchEvent(new HashChangeEvent('hashchange'));
+    sign.onclick=async()=>{
+      signing=true;refreshActions();
+      try{const next=await api('checkin','POST');if(!dead)Object.assign(wallet,next);}
+      catch(e){if(!dead)toast(e.message);}
+      finally{signing=false;if(!dead)refreshActions();}
     };
     function point(e){const r=canvas.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
     canvas.onpointerdown=e=>{
-      if(e.button!==0||!bounds||drag||autoTear||(!revealed&&busy))return;
+      if(e.button!==0||!bounds||drag||autoTear||(!revealed&&!canTear()))return;
       const {x,y}=point(e),b=bounds;
       if(!revealed&&(x<b.bx-8||x>b.bx+b.bw+8||y<b.by-8||y>b.by+b.bh+8))return;
       canvas.setPointerCapture(e.pointerId);drag={x,y,p:m.p,id:e.pointerId};
@@ -95,7 +150,7 @@
       const pt=point(e),dx=pt.x-drag.x;
       if(!m.p){if(Math.abs(dx)<6||Math.abs(dx)<Math.abs(pt.y-drag.y)*.55)return;m.dir=Math.sign(dx);}
       m.p=Math.max(m.p,Math.min(1,drag.p+dx*m.dir/(bounds.sealRight-bounds.sealLeft)));
-      if(m.p>=1)open();
+      if(m.p>=1){drag=null;open();}
     };
     canvas.onpointerup=e=>{
       if(!drag||drag.id!==e.pointerId)return;
@@ -114,7 +169,49 @@
         const from=last?last.to:1;m.flips[hit.i]={from,to:1-from,at:now-(reduced?420:0)};redraw();}
     };
     canvas.onpointercancel=()=>{drag=null;};
-    function cleanup(){dead=true;resize.disconnect();cancelAnimationFrame(frame);}
+    const inspectBox=dialog.querySelector('.inspect-art'),inspectCanvas=inspectBox.firstElementChild,meta=dialog.querySelector('.inspect-info');
+    const previous=dialog.querySelector('[data-previous]'),next=dialog.querySelector('[data-next]'),flip=dialog.querySelector('[data-flip]');
+    let look,lookCard,lookIndex,front,revision=0;
+    function paint(){
+      if(look&&lookCard)inspectCard(look,lookCard,front);
+    }
+    const lookResize=new ResizeObserver(()=>{
+      if(!dialog.open)return;
+      look=surface(inspectCanvas,inspectBox.clientWidth,inspectBox.clientHeight);paint();
+    });
+    lookResize.observe(inspectBox);
+    async function choose(index){
+      const current=++revision;
+      lookIndex=(index+m.cards.length)%m.cards.length;
+      lookCard=m.cards[lookIndex];front=true;flip.textContent='看背面';
+      meta.textContent=`${lookIndex+1} / ${m.cards.length} · ${lookCard.name}${lookCard.tierName?' · '+lookCard.tierName:''}`;
+      paint();
+      const full={...lookCard};
+      for(const field of ['subject','frame','background','back']){
+        if(full[field]?.startsWith('/thumb/'))full[field]=full[field].slice(6);
+      }
+      try{
+        await Promise.all(sources(full).map(src=>load(src)));
+        if(current===revision&&dialog.open){lookCard=full;paint();}
+      }catch(_){/* The current thumbnail remains available. */}
+    }
+    inspect.onclick=()=>{
+      previous.disabled=next.disabled=m.cards.length<2;
+      dialog.showModal();choose(0);
+    };
+    previous.onclick=()=>choose(lookIndex-1);
+    next.onclick=()=>choose(lookIndex+1);
+    flip.onclick=()=>{
+      front=!front;flip.textContent=front?'看背面':'看正面';paint();
+    };
+    inspectCanvas.onclick=flip.onclick;
+    dialog.querySelector('[data-close]').onclick=()=>dialog.close();
+    dialog.onclose=()=>{revision++;look=null;inspect.focus();};
+    dialog.onkeydown=e=>{
+      if(m.cards.length<2||e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+      e.preventDefault();choose(lookIndex+(e.key==='ArrowLeft'?-1:1));
+    };
+    function cleanup(){dead=true;revision++;resize.disconnect();lookResize.disconnect();cancelAnimationFrame(frame);}
     start();return cleanup;
   }
   function viewer(box,initial,{preview=false,settings=()=>[0,.15],onReady=()=>{},onError=()=>{}}={}){
@@ -122,7 +219,8 @@
     const cache=preview?new Map():images,pending=preview?new Map():loading;
     let canvas=box.querySelector('canvas'),c=initial,ratio=dimensions(c.ratio);
     let renderer,flat,cardWidth,dead=false,frame,drag,ready=false,revision=0;
-    let x=c.dex?-5:-4,y=-9,tx=x,ty=y;
+    const initialPitch=preview?-9:c.dex?-5:-4,initialYaw=preview?-16:-9;
+    let x=initialPitch,y=initialYaw,tx=x,ty=y;
     function tick(){
       frame=0;if(dead||!ready)return;
       if(reduced){x=tx;y=ty;}
@@ -137,6 +235,7 @@
     }
     function redraw(){if(!frame&&!dead)frame=requestAnimationFrame(tick);}
     function flip(){tx=0;ty=180*Math.round(ty/180)+180;redraw();}
+    function resetPose(){x=tx=initialPitch;y=ty=initialYaw;redraw();}
     function begin(e){
       if(drag||e.button!==0||(!preview&&(!ready||e.target!==canvas)))return;
       box.setPointerCapture(e.pointerId);
@@ -151,7 +250,8 @@
     };
     box.onpointerup=e=>{
       if(!drag||drag.id!==e.pointerId)return;
-      if(!drag.moved)flip();else{tx=0;ty=180*Math.round(ty/180);redraw();}
+      if(!drag.moved)flip();
+      else if(!preview){tx=0;ty=180*Math.round(ty/180);redraw();}
       drag=null;
     };
     box.onpointercancel=()=>{drag=null;};
@@ -193,7 +293,7 @@
       box.onpointerdown=box.onpointermove=box.onpointerup=box.onpointercancel=null;
       if(renderer){renderer.dispose();canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext();}
     }
-    return {begin,flip,redraw,update,dispose};
+    return {begin,flip,resetPose,redraw,update,dispose};
   }
   function card(root,c,{toast,download,standalone=false}){
     root.innerHTML=`<section class="stage"><header class="stage-head"><div class="stage-title">${standalone?'':'<a class="back" href="#album">‹ 卡组</a>'}<strong></strong></div></header><div class="viewer"><canvas aria-label="闪卡"></canvas></div><div class="stage-foot"><div class="settings"><label>景深 <input type="range" min="-30" max="30" step="1"><output></output></label><label>轮廓光 <input type="range" min="0" max="20" step="1"><output></output></label></div><div class="row"><button class="soft flip-card" disabled>翻面</button>${download?'<button class="soft download-card">下载互动卡</button>':''}</div></div></section>`;

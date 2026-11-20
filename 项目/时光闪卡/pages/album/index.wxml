@@ -25,7 +25,7 @@
           data-id="{{card.id}}" bindtap="detail" aria-label="{{card.name}}，{{card.count ? card.count + ' 张' : '未获得'}}">
           <view class="card-art"><card-face card="{{card}}" gallery="{{true}}"/></view>
           <text class="card-name">{{card.special ? '✦ ' : ''}}{{card.name}}</text>
-          <text class="quantity">{{card.count ? card.count + ' 张' : '未获得'}}</text>
+          <text class="quantity">{{card.tierName ? card.tierName + ' · ' : ''}}{{card.count ? card.count + ' 张' : '未获得'}}</text>
         </button>
       </view>
       <button wx:if="{{nextOffset !== null}}" class="btn mini album-more" disabled="{{loading}}" bindtap="loadPage">{{loading ? '加载中…' : failed ? '重试' : '查看更多'}}</button>

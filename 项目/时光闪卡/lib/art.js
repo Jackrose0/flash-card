@@ -68,4 +68,12 @@ function cardFace(ctx,images,c,w,h,front,glow=0){
   }
   ctx.restore();
 }
-module.exports={surface,dimensions,sources,cardFace,cardLabel,blit};
+function inspectCard({ctx,w,h,images},card,front){
+  const ratio=dimensions(card.ratio);
+  const width=Math.min(w*.9,h*.93*ratio,460);
+  ctx.clearRect(0,0,w,h);
+  ctx.save();ctx.translate(w/2,h/2);
+  cardFace(ctx,images,card,width,width/ratio,front);
+  ctx.restore();
+}
+module.exports={surface,dimensions,sources,cardFace,cardLabel,blit,inspectCard};

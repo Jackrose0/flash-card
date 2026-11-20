@@ -4,7 +4,7 @@ const vertex = `uniform vec2 pose,fit; uniform float aspect; attribute vec2 posi
 float y=v.y*cos(pose.x)-v.z*sin(pose.x),z=v.y*sin(pose.x)+v.z*cos(pose.x);
 gl_Position=vec4(v.x*fit.x,y/aspect*fit.y,0.,1.-z*.24);}`;
 const fragment = `precision highp float;
-varying vec2 uv; uniform sampler2D art,bg,uiTex,bloomNear,bloomWide,reverseTex; uniform float extracted, cardAspect; uniform vec2 view; uniform float depth, contourBrightness, power, glowPass, pixelWidth;
+varying vec2 uv; uniform sampler2D art,bg,uiTex,bloomNear,bloomWide,reverseTex; uniform float extracted, cardAspect; uniform vec2 view; uniform float depth, backgroundDepth, contourBrightness, power, glowPass, pixelWidth;
 vec4 encodeHDR(vec3 c){float m=clamp(ceil(max(max(c.r,c.g),c.b)/64.*255.)/255.,1./255.,1.);return vec4(c/(64.*m),m);}
 vec3 decodeHDR(vec4 c){return c.rgb*c.a*64.;}
 vec2 extrema(vec4 values){
@@ -41,7 +41,7 @@ void main(){
  if(cardMask<=0.){gl_FragColor=glowPass>.5?encodeHDR(vec3(0.)):vec4(0.);return;}
  if(!gl_FrontFacing && glowPass<.5){gl_FragColor=texture2D(reverseTex,vec2(1.-p.x,p.y))*cardMask;return;}
  vec2 a=p-view*.06*depth;
- vec2 b=(p-.5)*.94+.5-view*.042;
+ vec2 b=(p-.5)*.94+.5-view*.042*backgroundDepth;
  vec4 ch=texture2D(art,a);
  vec3 base=texture2D(bg,b).rgb*(1.-.14*texture2D(art,a+vec2(-.008,.011)-view*.015).a);
  vec4 printed=texture2D(uiTex,p);
@@ -206,6 +206,7 @@ function createCardRenderer(canvas, surface, card) {
     view: gl.getUniformLocation(scene, 'view'),
     power: gl.getUniformLocation(scene, 'power'),
     depth: gl.getUniformLocation(scene, 'depth'),
+    backgroundDepth: gl.getUniformLocation(scene, 'backgroundDepth'),
     contourBrightness: gl.getUniformLocation(scene, 'contourBrightness'),
     pass: gl.getUniformLocation(scene, 'glowPass'),
   };
@@ -244,7 +245,7 @@ function createCardRenderer(canvas, surface, card) {
       fitX=cardWidth/width;
       fitY=cardWidth*cardAspect/height;
     },
-    draw(x, y, strength, depth = 0, contourBrightness = 0.15) {
+    draw(x, y, strength, depth = 0, contourBrightness = 0.15, backgroundDepth = 1) {
       const pitch=x*Math.PI/180,yaw=y*Math.PI/180;
       const sinPitch=Math.sin(pitch),cosPitch=Math.cos(pitch),sinYaw=Math.sin(yaw),cosYaw=Math.cos(yaw);
       // Project the four corners with the same perspective as the vertex shader.
@@ -267,6 +268,7 @@ function createCardRenderer(canvas, surface, card) {
       );
       gl.uniform1f(sceneU.power, strength);
       gl.uniform1f(sceneU.depth, depth);
+      gl.uniform1f(sceneU.backgroundDepth, backgroundDepth);
       gl.uniform1f(sceneU.contourBrightness, contourBrightness);
       gl.uniform2f(pose,0,0);gl.uniform2f(fit,1,1);
       gl.uniform1f(sceneU.pass, 1);

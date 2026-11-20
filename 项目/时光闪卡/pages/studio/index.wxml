@@ -1,5 +1,5 @@
 <brand-header role-name="{{roleName}}"/>
-<view class="page tab-page" wx:if="{{who && who.role!=='user'}}">
+<view class="page tab-page" wx:if="{{who}}">
 <view wx:if="{{!section}}">
   <view class="title studio-title">管理</view>
   <button wx:for="{{sections}}" wx:key="id" class="studio-entry" data-section="{{item.id}}" data-title="{{item.title}}" bindtap="section">
@@ -14,19 +14,64 @@
   <view class="title">{{sectionTitle}}</view>
 </view>
 <view wx:if="{{section==='卡池'}}" class="panel"><view class="head pool-actions"><button class="btn mini" bindtap="newPool">新增卡池</button></view>
-<view wx:for="{{poolList}}" wx:key="id" class="line" data-id="{{item.id}}" bindtap="configure"><text>{{item.name}}</text><text class="count">{{item.count}} 款　›</text></view></view>
+<view wx:for="{{poolList}}" wx:key="id" class="line" data-id="{{item.id}}" bindtap="configure"><text>{{item.name}}</text><text class="count">{{item.statusName}} · {{item.count}} 款　›</text></view></view>
 <block wx:elif="{{section==='制卡'}}"><view class="panel"><view class="field first">卡片比例</view><view class="wrap"><button wx:for="{{ratios}}" wx:key="*this" data-value="{{item}}" bindtap="ratio" class="chip mini {{draft.ratio===item?'active':''}}">{{item}}</button></view>
-<view class="field">上层框</view><picker range="{{frames}}" range-key="name" value="{{frameIndex}}" bindchange="frame"><view class="entry">{{frames[frameIndex].name}} ▾</view></picker>
-<view class="field">背景</view><picker range="{{backgrounds}}" range-key="name" value="{{bgIndex}}" bindchange="background"><view class="entry">{{backgrounds[bgIndex].name}} ▾</view></picker>
+<view class="field">上层卡框</view><picker range="{{frames}}" range-key="name" value="{{frameIndex}}" bindchange="frame"><view class="entry">{{frames[frameIndex].name}} ▾</view></picker>
+<view class="field">背景图</view><picker range="{{backgrounds}}" range-key="name" value="{{bgIndex}}" bindchange="background"><view class="entry">{{backgrounds[bgIndex].name}} ▾</view></picker>
 <view wx:if="{{!draft.background}}" class="row space"><view class="swatch" style="background:{{draft.color}}"></view><input class="entry grow" maxlength="7" value="{{colorText}}" bindinput="color" placeholder="#F5DDE6"/></view>
+<view class="field">卡背</view><picker range="{{backs}}" range-key="name" value="{{backIndex}}" bindchange="back"><view class="entry">{{backs[backIndex].name}} ▾</view></picker>
 <view class="field">卡池</view><picker range="{{pools}}" range-key="name" value="{{poolIndex}}" bindchange="pool"><view class="entry">{{pools[poolIndex].name}} ▾</view></picker>
-<view class="line space"><text>稀有闪卡</text><switch checked="{{draft.special}}" bindchange="special" color="#575346"/></view></view>
+<block wx:if="{{tiers.length}}"><view class="field">闪卡类型</view><picker range="{{tiers}}" range-key="name" value="{{tierIndex}}" bindchange="tier"><view class="entry">{{tiers[tierIndex].name}} ▾</view></picker></block>
+<view class="line space"><text>闪光外观</text><switch checked="{{draft.special}}" bindchange="special" color="#575346"/></view></view>
 <view class="head"><text class="subhead">中层图片 · {{subjects.length}}</text><button class="btn mini" disabled="{{working}}" bindtap="chooseSubjects">批量选图</button></view>
 <view class="cards"><view wx:for="{{previews}}" wx:key="key" class="preview"><card-face card="{{item}}"/><input value="{{item.name}}" data-index="{{index}}" maxlength="18" bindblur="rename" placeholder="卡片名称"/><button class="btn mini" data-index="{{index}}" bindtap="removeSubject">移除</button></view></view>
-<button class="btn primary full" disabled="{{!subjects.length || working}}" bindtap="publish">生成 {{subjects.length || ''}} 张卡{{poolIndex ? '并加入卡池' : ''}}</button>
-<view wx:if="{{created.length}}" class="panel"><text class="subhead">本次生成</text><view wx:for="{{created}}" wx:key="id" class="line" data-id="{{item.id}}" bindtap="detail"><text>{{item.name}}</text><text>查看 ↗</text></view></view></block>
+<button class="btn primary full" disabled="{{!subjects.length || working}}" bindtap="publish">{{poolDraft?'保存到卡池草稿':who.role==='owner'?'合成闪卡':'合成并提交审核'}}</button>
+<view wx:if="{{who.role==='owner' && created.length}}" class="panel"><text class="subhead">本次生成</text><view wx:for="{{created}}" wx:key="id" class="line" data-id="{{item.id}}" bindtap="detail"><text>{{item.name}}</text><text>查看 ↗</text></view></view>
+<view wx:if="{{myCards.length}}" class="panel"><text class="subhead">我的闪卡</text>
+<view wx:for="{{myCards}}" wx:key="id"><view class="line"><button class="btn mini" data-id="{{item.id}}" bindtap="detail">{{item.name}}</button><text class="count">{{item.statusName}}</text><button wx:if="{{item.status==='returned'}}" class="btn mini" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="resubmit">再次提交</button></view>
+<view wx:if="{{item.review_reason}}" class="count review-reason">退回原因 · {{item.review_reason}}</view></view></view></block>
 <block wx:elif="{{section==='素材'}}"><view wx:for="{{groups}}" wx:key="key" class="panel" wx:for-item="group"><view class="head"><text class="subhead">{{group.name}}</text><button class="btn mini" disabled="{{working}}" data-kind="{{group.key}}" bindtap="addResource">新增</button></view>
-<view wx:for="{{group.rows}}" wx:key="id" class="line"><view class="row grow"><image class="thumb" src="{{item.src}}" mode="aspectFit"/><text>{{item.name}} {{item.ratio || ''}}</text></view><button class="btn mini danger" data-kind="{{group.key}}" data-id="{{item.id}}" bindtap="removeResource">删除</button></view></view></block>
+<view wx:for="{{group.rows}}" wx:key="id" class="line"><view class="row grow"><image class="thumb" src="{{item.src}}" mode="aspectFit"/><text>{{item.name}} {{item.ratio || ''}}</text></view><button wx:if="{{item.editable}}" class="btn mini danger" data-kind="{{group.key}}" data-id="{{item.id}}" bindtap="removeResource">删除</button></view></view></block>
+<block wx:elif="{{section==='审核'}}">
+  <view class="subhead audit-heading">待审核</view>
+  <view wx:if="{{!pendingPools.length && !pendingCards.length}}" class="count audit-empty">暂无待审核投稿</view>
+  <view wx:for="{{pendingPools}}" wx:key="id" class="panel" wx:for-item="pool">
+    <view class="subhead">{{pool.name}}</view>
+    <view class="count">{{pool.cardsPerPack}} 张/发 · {{pool.ratesText}}</view>
+    <image wx:if="{{pool.pack}}" class="review-pack" src="{{pool.pack.src}}" mode="aspectFit"/>
+    <view class="cards"><button wx:for="{{pool.cards}}" wx:key="id" class="btn mini" data-id="{{item.id}}" bindtap="detail">{{item.name}} · {{item.tierName}}</button></view>
+    <view class="row review-actions"><button class="btn primary" data-kind="pools" data-id="{{pool.id}}" data-approved="{{true}}" bindtap="review">通过</button><button class="btn" data-kind="pools" data-id="{{pool.id}}" data-approved="{{false}}" bindtap="review">退回</button></view>
+  </view>
+  <view wx:for="{{pendingCards}}" wx:key="id" class="panel"><button class="btn mini" data-id="{{item.id}}" bindtap="detail">{{item.name}}</button><view wx:if="{{item.targetNames}}" class="count">{{item.targetNames}}</view>
+    <view class="row review-actions"><button class="btn primary" data-kind="cards" data-id="{{item.id}}" data-approved="{{true}}" bindtap="review">通过</button><button class="btn" data-kind="cards" data-id="{{item.id}}" data-approved="{{false}}" bindtap="review">退回</button></view>
+  </view>
+  <view class="subhead audit-heading">卡池上下架</view>
+  <view wx:for="{{reviewPools}}" wx:key="id" wx:for-item="pool" class="panel">
+    <view class="audit-row">
+      <text>{{pool.name}}</text><text class="count">{{pool.listed?'已上架':'已下架'}}</text>
+      <button class="btn mini {{pool.listed?'danger':''}}" data-pool="{{pool.id}}" bindtap="listing">{{pool.listed?'下架':'上架'}}</button>
+    </view>
+    <view class="count">实际 · {{pool.ratesText}}</view>
+    <button class="btn mini audit-members" data-pool="{{pool.id}}" bindtap="reviewMembers">{{pool.open?'收起池内卡片':'管理池内卡片'}}</button>
+    <block wx:if="{{pool.open}}">
+      <view wx:for="{{pool.cards}}" wx:key="id" class="audit-row audit-card">
+        <button class="btn mini audit-card-name" data-id="{{item.id}}" bindtap="detail">{{item.name}}</button><text class="count">{{item.listed?'已上架':'已下架'}}</text>
+        <button class="btn mini {{item.listed?'danger':''}}" data-pool="{{pool.id}}" data-card="{{item.id}}" bindtap="listing">{{item.listed?'下架':'上架'}}</button>
+      </view>
+      <view wx:if="{{!pool.cards.length}}" class="count">暂无已通过的卡片</view>
+      <button wx:if="{{pool.more}}" class="btn mini audit-members" data-pool="{{pool.id}}" data-more="{{true}}" bindtap="reviewMembers">加载更多卡片</button>
+    </block>
+  </view>
+  <view wx:if="{{!reviewPools.length}}" class="count audit-empty">暂无已通过的卡池</view>
+  <view class="subhead audit-heading">用户封禁</view>
+  <view class="panel">
+    <view wx:for="{{reviewUsers}}" wx:key="id" class="audit-row audit-card">
+      <text>{{item.name}}</text><text class="count">{{item.banned?'已封禁':'正常'}}</text>
+      <button class="btn mini {{item.banned?'':'danger'}}" data-id="{{item.id}}" bindtap="changeBan">{{item.banned?'解封':'封禁'}}</button>
+    </view>
+    <view wx:if="{{!reviewUsers.length}}" class="count">暂无其他用户</view>
+  </view>
+</block>
 <view wx:else class="panel">
 <view wx:for="{{profiles}}" wx:key="id" class="line profile-line"><view><text>{{item.name}}</text><view class="count">{{item.id}}</view></view><text wx:if="{{item.role==='owner'}}">店主</text><view wx:else class="profile-toggles"><label class="row">制卡员 <switch color="#575346" checked="{{item.role==='maker'}}" data-id="{{item.id}}" bindchange="grant"/></label><label class="row">下载互动卡 <switch color="#575346" checked="{{item.canDownloadCards}}" data-id="{{item.id}}" bindchange="grantDownload"/></label></view></view></view></block>
 </view>

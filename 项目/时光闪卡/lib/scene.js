@@ -38,10 +38,11 @@ function resultGrid(w,h,top,count){
 function render(surface,model,now){
   const {ctx,w,h,images}=surface,{pack,p,dir,openAt,cards}=model;
   const t=now/1000,elapsed=openAt===null?-1:(now-openAt)/1000;
-  const bw=Math.min(w*.65,h*.54,280),bh=bw*1.414;
-  const bx=(w-bw)/2,by=(h-bh)/2+7+(p||elapsed>=0?0:Math.sin(t*1.5)*2);
   const packArt=images.get(pack.src||'/assets/'+pack.id+'-pack.png');
-  const [left,right,sealY]=packSeals[pack.id]||[.012,.990,.071];
+  const ratio=pack.custom&&packArt?packArt.width/packArt.height:1/1.414;
+  const bw=Math.min(w*.65,h*.764*ratio,280),bh=bw/ratio;
+  const bx=(w-bw)/2,by=(h-bh)/2+7+(p||elapsed>=0?0:Math.sin(t*1.5)*2);
+  const [left,right,sealY]=(!pack.custom&&packSeals[pack.id])||[.012,.990,.071];
   const sealWidth=(right-left)*bw;
   const sealX=u=>left*bw+sealWidth*(dir>0?u:1-u);
   const cutY=x=>{const u=x/bw;return bh*(sealY+.002*Math.sin(u*86)+.0012*Math.sin(u*179));};
@@ -49,16 +50,14 @@ function render(surface,model,now){
   ctx.save();ctx.translate(bx+bw*.5,by+bh+10);ctx.scale(1,.13);
   const shadow=ctx.createRadialGradient(0,0,0,0,0,bw*.4);shadow.addColorStop(0,'rgba(67,43,63,'+(.22*(1-clamp(elapsed*3)))+')');shadow.addColorStop(1,'rgba(67,43,63,0)');
   ctx.fillStyle=shadow;ctx.fillRect(-bw*.4,-bw*.4,bw*.8,bw*.8);ctx.restore();
-  if(p>0 && elapsed<.3){
+  if(p>0 && elapsed>=0 && elapsed<.3){
     ctx.save();ctx.translate(bx,by);
     ctx.globalAlpha=(1-clamp(elapsed/.3))**2;
     const unit=bw/100;
-    const growthTime=openAt??now;
     for(let i=0;i<28;i++){
       const l=i/28,r=Math.min(p,(i+1)/28);
       if(l>=r)break;
-      if(model.born[i]===undefined)model.born[i]=growthTime;
-      const head=Math.min(136,(growthTime-model.born[i])*.21+2);
+      const head=Math.min(136,(now-openAt)*.42+12);
       const edge=(root,d)=>{
         const x=sealX(root),sway=Math.min(1,d/6)*(Math.sin(d*.46-t*8+root*5)+.5*Math.sin(d*.19-t*4));
         return [x+((x/bw-.5)/.55*d+dir*sway)*unit,cutY(x)-d*unit];
@@ -81,12 +80,13 @@ function render(surface,model,now){
       const spread=ease(clamp((u-.48)/.52)),ring=Math.sin(Math.min(1,u/.35)*Math.PI/2)*(1-spread);
       const a=((i-center)*2.09+Math.PI*2.1)*(1-u)**2+Math.PI*.5-(i-center)*.55;
       const cell=grid?.[i];
-      const lx=cell?cell.x:[-.225,.225,0][i]*w,ly=cell?cell.y:[-.198,-.198,.227][i]*h;
+      const lx=cell?cell.x:cards.length===1?0:[-.225,.225,0][i]*w;
+      const ly=cell?cell.y:cards.length<3?0:[-.198,-.198,.227][i]*h;
       const ratio=dimensions(card.ratio),fw=Math.min(cell?.w??w*.39,(cell?.h??h*.39)*ratio),fh=fw/ratio;
       const s=1+(Math.min(bw*.78/fw,bh*.72/fh)-1)*(1-ease(u));
       const x=w/2+Math.cos(a)*w*.31*ring+lx*spread;
       const y=h/2+(.045-.246*(1-(1-shot)**2))*h*(1-ease(u))+Math.sin(a)*w*.072*ring+ly*spread;
-      const angle=(cell?0:[-.075,.075,-.035][i])*spread-.15*Math.cos(a)*ring;
+      const angle=(cell||cards.length===1?0:[-.075,.075,-.035][i])*spread-.15*Math.cos(a)*ring;
       const flip=model.flips[i];let f=ease(clamp((u-.38)/.4));
       if(flip)f=flip.from+(flip.to-flip.from)*ease(clamp((now-flip.at)/420));
       return {i,card,x,y,w:fw*s,h:fh*s,angle,f,z:ring*Math.sin(a)*5-i*.015};
